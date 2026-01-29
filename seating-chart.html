@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classroom Seating Chart</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // Lucide icon components as SVG
+    const Plus = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>;
+    const Trash2 = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
+    const Save = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>;
+    const Users = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+    const UserPlus = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>;
+    const X = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>;
+    const Settings2 = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>;
+    const Maximize = ({ size = 24, className = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>;
+    const Copy = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>;
+    const RotateCcw = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>;
+    const RotateCw = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>;
+    const ZoomIn = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>;
+    const ZoomOut = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M8 11h6"/></svg>;
+    const Maximize2 = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>;
+    const Minimize2 = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>;
+    const Hand = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>;
+    const ShieldAlert = ({ size = 24, className = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>;
+    const FileText = ({ size = 24, className = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>;
+    const Activity = ({ size = 24, className = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>;
+    const AlertTriangle = ({ size = 24, className = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>;
+    const UserX = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" x2="22" y1="8" y2="13"/><line x1="22" x2="17" y1="8" y2="13"/></svg>;
+    const Eye = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
+    const EyeOff = ({ size = 24 }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" x2="23" y1="1" y2="23"/></svg>;
+
+    const GRID_SIZE = 20;
+    const CONFLICT_DISTANCE = 200; // pixels - students within this distance trigger conflict warning
+
+    const App = () => {
+  const [desks, setDesks] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [nameOrder, setNameOrder] = useState('firstLast');
+  const [draggingItem, setDraggingItem] = useState(null);
+  const [resizingItem, setResizingItem] = useState(null);
+  const [rotatingItem, setRotatingItem] = useState(null);
+  const [zoom, setZoom] = useState(0.8);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [spacePressed, setSpacePressed] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [managingConflictsFor, setManagingConflictsFor] = useState(null);
+  const [showFlags, setShowFlags] = useState(true);
+  const [classroomName, setClassroomName] = useState('Classroom');
+  const [deskTemplates, setDeskTemplates] = useState([]);
+  
+  const [defaultWidth, setDefaultWidth] = useState(120);
+  const [defaultHeight, setDefaultHeight] = useState(80);
+
+  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const lastMousePos = useRef({ x: 0, y: 0 });
+  const dragStartOffset = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const savedDesks = localStorage.getItem('classroom_desks');
+    const savedStudents = localStorage.getItem('classroom_students');
+    const savedSettings = localStorage.getItem('classroom_settings');
+    const savedName = localStorage.getItem('classroom_name');
+    const savedTemplates = localStorage.getItem('desk_templates');
+    
+    if (savedDesks) setDesks(JSON.parse(savedDesks));
+    if (savedStudents) setStudents(JSON.parse(savedStudents));
+    if (savedName) setClassroomName(JSON.parse(savedName));
+    if (savedTemplates) setDeskTemplates(JSON.parse(savedTemplates));
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      setDefaultWidth(settings.width || 120);
+      setDefaultHeight(settings.height || 80);
+    }
+
+    const handleClickOutside = () => setContextMenu(null);
+    const handleKeyDown = (e) => { 
+      if (e.code === 'Space' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
+        setSpacePressed(true);
+      }
+    };
+    const handleKeyUp = (e) => { if (e.code === 'Space') setSpacePressed(false); };
+
+    window.addEventListener('click', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    
+    return () => {
+      window.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  const saveLayout = async () => {
+    // Save to localStorage
+    localStorage.setItem('classroom_desks', JSON.stringify(desks));
+    localStorage.setItem('classroom_students', JSON.stringify(students));
+    localStorage.setItem('classroom_settings', JSON.stringify({ width: defaultWidth, height: defaultHeight }));
+    localStorage.setItem('classroom_name', JSON.stringify(classroomName));
+    localStorage.setItem('desk_templates', JSON.stringify(deskTemplates));
+    
+    // Capture and download as image
+    try {
+      // If flags are shown, temporarily allow legend to be captured
+      const legendElement = document.querySelector('.legend-key');
+      if (showFlags && legendElement) {
+        legendElement.classList.remove('no-print');
+      }
+      
+      const canvas = await html2canvas(canvasRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+        useCORS: true
+      });
+      
+      // Restore no-print class after capture
+      if (showFlags && legendElement) {
+        legendElement.classList.add('no-print');
+      }
+      
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const date = new Date().toISOString().split('T')[0];
+        link.download = `seating-chart-${date}.png`;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+    } catch (error) {
+      console.error('Error saving image:', error);
+      alert('Failed to save image. Please try again.');
+    }
+  };
+
+  const clearAll = () => {
+    if (window.confirm('Are you sure you want to clear the entire room?')) {
+      setDesks([]);
+      setStudents([]);
+      localStorage.removeItem('classroom_desks');
+      localStorage.removeItem('classroom_students');
+    }
+  };
+
+  const clearStudents = () => {
+    if (window.confirm('Are you sure you want to clear all students?')) {
+      setStudents([]);
+      localStorage.removeItem('classroom_students');
+    }
+  };
+
+  const addDesk = (x = 100, y = 100, width = defaultWidth, height = defaultHeight, rotation = 0) => {
+    const newDesk = {
+      id: `desk-${Date.now()}-${Math.random()}`,
+      x,
+      y,
+      width,
+      height,
+      rotation: rotation || 0
+    };
+    setDesks(prev => [...prev, newDesk]);
+    return newDesk;
+  };
+
+  const saveDeskAsTemplate = () => {
+    const template = {
+      id: `template-${Date.now()}-${Math.random()}`,
+      width: defaultWidth,
+      height: defaultHeight,
+      name: `${defaultWidth}x${defaultHeight}`
+    };
+    setDeskTemplates(prev => [...prev, template]);
+  };
+
+  const deleteDeskTemplate = (id) => {
+    setDeskTemplates(prev => prev.filter(t => t.id !== id));
+  };
+
+  const placeDeskFromTemplate = (template) => {
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const centerX = (containerRect.width / 2 - panOffset.x) / zoom;
+    const centerY = (containerRect.height / 2 - panOffset.y) / zoom;
+    const snappedX = Math.round(centerX / GRID_SIZE) * GRID_SIZE;
+    const snappedY = Math.round(centerY / GRID_SIZE) * GRID_SIZE;
+    addDesk(snappedX, snappedY, template.width, template.height, 0);
+  };
+
+  const toggleStudentFlag = (id, flag) => {
+    setStudents(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      const flags = s.flags || {};
+      return { ...s, flags: { ...flags, [flag]: !flags[flag] } };
+    }));
+  };
+
+  const getStudentColorClass = (student) => {
+    if (!student.flags) return 'border-indigo-100 bg-white text-indigo-700 hover:border-indigo-300';
+    if (student.flags.behaviour) return 'border-orange-200 bg-orange-50 text-orange-800 hover:border-orange-400 shadow-orange-100';
+    if (student.flags.iep) return 'border-purple-200 bg-purple-50 text-purple-800 hover:border-purple-400 shadow-purple-100';
+    if (student.flags.rmp) return 'border-teal-200 bg-teal-50 text-teal-800 hover:border-teal-400 shadow-teal-100';
+    return 'border-indigo-100 bg-white text-indigo-700 hover:border-indigo-300';
+  };
+
+  const placeStudentFromBench = (id) => {
+    const canvasWidth = 1400;
+    const canvasHeight = 1000;
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const centerX = (containerRect.width / 2 - panOffset.x) / zoom;
+    const centerY = (containerRect.height / 2 - panOffset.y) / zoom;
+    const snappedX = Math.round(centerX / GRID_SIZE) * GRID_SIZE;
+    const snappedY = Math.round(centerY / GRID_SIZE) * GRID_SIZE;
+
+    setStudents(prev => prev.map(s => s.id === id ? { 
+      ...s, 
+      isPlaced: true, 
+      x: Math.min(Math.max(0, snappedX), canvasWidth - 100), 
+      y: Math.min(Math.max(0, snappedY), canvasHeight - 40) 
+    } : s));
+  };
+
+  const duplicateDesk = (desk) => {
+    addDesk(desk.x + 20, desk.y + 20, desk.width, desk.height, desk.rotation);
+    setContextMenu(null);
+  };
+
+  const formatName = (rawName) => {
+    const parts = rawName.trim().split(/[\s,]+/).filter(Boolean);
+    if (parts.length === 0) return "";
+    let first = "";
+    let lastInitial = "";
+    if (nameOrder === 'lastFirst' && parts.length >= 2) {
+      first = parts[1];
+      lastInitial = parts[0].charAt(0).toUpperCase();
+    } else if (parts.length >= 2) {
+      first = parts[0];
+      lastInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+    } else {
+      first = parts[0];
+    }
+    return lastInitial ? `${first} ${lastInitial}.` : first;
+  };
+
+  const addStudentToRoster = (e) => {
+    e.preventDefault();
+    if (!newStudentName.trim()) return;
+    const lines = newStudentName.split('\n').filter(n => n.trim() !== '');
+    const newStudents = lines.map((line, index) => ({
+      id: `student-${Date.now()}-${index}-${Math.random()}`,
+      name: formatName(line),
+      x: null, 
+      y: null,
+      isPlaced: false,
+      flags: { behaviour: false, iep: false, rmp: false },
+      conflicts: []
+    }));
+    setStudents([...students, ...newStudents]);
+    setNewStudentName('');
+  };
+
+  const deleteStudent = (id) => {
+    // Remove student and clean up any conflict references
+    setStudents(prev => prev.filter(s => s.id !== id).map(s => ({
+      ...s,
+      conflicts: (s.conflicts || []).filter(cId => cId !== id)
+    })));
+  };
+  
+  const deleteDesk = (id) => setDesks(desks.filter(d => d.id !== id));
+  const returnToBench = (id) => setStudents(prev => prev.map(s => s.id === id ? { ...s, isPlaced: false, x: null, y: null } : s));
+  
+  const toggleConflict = (studentId, conflictId) => {
+    setStudents(prev => prev.map(s => {
+      if (s.id === studentId) {
+        const conflicts = s.conflicts || [];
+        const hasConflict = conflicts.includes(conflictId);
+        return {
+          ...s,
+          conflicts: hasConflict 
+            ? conflicts.filter(id => id !== conflictId)
+            : [...conflicts, conflictId]
+        };
+      }
+      if (s.id === conflictId) {
+        const conflicts = s.conflicts || [];
+        const hasConflict = conflicts.includes(studentId);
+        return {
+          ...s,
+          conflicts: hasConflict 
+            ? conflicts.filter(id => id !== studentId)
+            : [...conflicts, studentId]
+        };
+      }
+      return s;
+    }));
+  };
+  
+  const getConflictingStudents = (student) => {
+    if (!student.isPlaced || !student.conflicts || student.conflicts.length === 0) return [];
+    
+    return placedStudents.filter(other => {
+      if (other.id === student.id) return false;
+      if (!student.conflicts.includes(other.id)) return false;
+      
+      const dx = student.x - other.x;
+      const dy = student.y - other.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      return distance < CONFLICT_DISTANCE;
+    });
+  };
+
+  const handleStart = (e, type, id, itemX, itemY) => {
+    if (e.button === 2) return;
+    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+    if (spacePressed || e.button === 1 || type === null) {
+      setIsPanning(true);
+      lastMousePos.current = { x: clientX, y: clientY };
+      if (type !== null) e.stopPropagation();
+      return;
+    }
+
+    e.stopPropagation();
+    const rect = canvasRef.current.getBoundingClientRect();
+    const localX = (clientX - rect.left) / zoom;
+    const localY = (clientY - rect.top) / zoom;
+
+    setDraggingItem({ type, id });
+    dragStartOffset.current = {
+      x: localX - (itemX || 0),
+      y: localY - (itemY || 0)
+    };
+  };
+
+  const handleResizeStart = (e, id, mode) => {
+    e.stopPropagation();
+    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+    setResizingItem({ id, mode, startX: clientX, startY: clientY });
+  };
+
+  const handleRotateStart = (e, desk) => {
+    e.stopPropagation();
+    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const centerX = rect.left + (desk.x + desk.width / 2) * zoom;
+    const centerY = rect.top + (desk.y + desk.height / 2) * zoom;
+    const angle = Math.atan2(clientY - centerY, clientX - centerX);
+    setRotatingItem({
+      id: desk.id,
+      startAngle: desk.rotation || 0,
+      startMouseAngle: angle,
+      centerX,
+      centerY
+    });
+  };
+
+  const handleContextMenu = (e, desk) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, desk });
+  };
+
+  const handleMouseMove = useCallback((e) => {
+    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+    if (isPanning) {
+      const dx = clientX - lastMousePos.current.x;
+      const dy = clientY - lastMousePos.current.y;
+      setPanOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+      lastMousePos.current = { x: clientX, y: clientY };
+      return;
+    }
+
+    const rect = canvasRef.current.getBoundingClientRect();
+
+    if (draggingItem) {
+      let newX = Math.round(((clientX - rect.left) / zoom - dragStartOffset.current.x) / GRID_SIZE) * GRID_SIZE;
+      let newY = Math.round(((clientY - rect.top) / zoom - dragStartOffset.current.y) / GRID_SIZE) * GRID_SIZE;
+      newX = Math.max(0, newX);
+      newY = Math.max(0, newY);
+      if (draggingItem.type === 'desk') {
+        setDesks(prev => prev.map(d => d.id === draggingItem.id ? { ...d, x: newX, y: newY } : d));
+      } else {
+        setStudents(prev => prev.map(s => s.id === draggingItem.id ? { ...s, x: newX, y: newY } : s));
+      }
+    }
+
+    if (resizingItem) {
+      setDesks(prev => prev.map(d => {
+        if (d.id !== resizingItem.id) return d;
+        let diffX = (clientX - resizingItem.startX) / zoom;
+        let diffY = (clientY - resizingItem.startY) / zoom;
+        let newWidth = d.width;
+        let newHeight = d.height;
+        if (resizingItem.mode === 'width' || resizingItem.mode === 'both') {
+          newWidth = Math.max(GRID_SIZE * 2, Math.round((d.width + diffX) / GRID_SIZE) * GRID_SIZE);
+        }
+        if (resizingItem.mode === 'height' || resizingItem.mode === 'both') {
+          newHeight = Math.max(GRID_SIZE * 2, Math.round((d.height + diffY) / GRID_SIZE) * GRID_SIZE);
+        }
+        return { ...d, width: newWidth, height: newHeight };
+      }));
+      setResizingItem(prev => ({ ...prev, startX: clientX, startY: clientY }));
+    }
+
+    if (rotatingItem) {
+      const angle = Math.atan2(clientY - rotatingItem.centerY, clientX - rotatingItem.centerX);
+      let diff = (angle - rotatingItem.startMouseAngle) * (180 / Math.PI);
+      let newAngle = Math.round((rotatingItem.startAngle + diff) / 45) * 45;
+      setDesks(prev => prev.map(d => d.id === rotatingItem.id ? { ...d, rotation: newAngle } : d));
+    }
+  }, [draggingItem, resizingItem, rotatingItem, isPanning, zoom]);
+
+  const handleEnd = () => {
+    setDraggingItem(null);
+    setResizingItem(null);
+    setRotatingItem(null);
+    setIsPanning(false);
+  };
+
+  useEffect(() => {
+    if (draggingItem || resizingItem || rotatingItem || isPanning) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleEnd);
+      window.addEventListener('touchmove', handleMouseMove, { passive: false });
+      window.addEventListener('touchend', handleEnd);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMouseMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [draggingItem, resizingItem, rotatingItem, isPanning, handleMouseMove]);
+
+  const placedStudents = students.filter(s => s.isPlaced);
+  const benchStudents = students.filter(s => !s.isPlaced);
+
+  return (
+    <div className="flex flex-col md:flex-row h-screen bg-slate-100 overflow-hidden font-sans text-slate-900">
+      <style>{`
+        .canvas-container {
+          cursor: ${spacePressed ? 'grab' : 'default'};
+        }
+        .canvas-container:active {
+          cursor: ${spacePressed ? 'grabbing' : 'default'};
+        }
+      `}</style>
+
+      {/* Sidebar */}
+      {!isFullScreen && (
+        <div className="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col shadow-xl z-10 no-print transition-all">
+          <div className="p-6 border-b border-slate-100 bg-indigo-600 text-white">
+            <h1 className="text-xl font-bold flex items-center gap-2 mb-3">
+              <Users size={24} />
+              Classroom Planner
+            </h1>
+            <input 
+              type="text" 
+              value={classroomName} 
+              onChange={(e) => setClassroomName(e.target.value)}
+              placeholder="Enter classroom name"
+              className="w-full px-3 py-2 rounded-lg text-slate-900 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+          </div>
+
+          <div className="p-4 flex-1 overflow-y-auto space-y-6">
+            <button onClick={saveLayout} className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-3 rounded-lg hover:bg-emerald-600 transition-all text-sm">
+              <Save size={16} /> Save as Image
+            </button>
+
+            <div className="space-y-3 pt-4 border-t border-slate-100">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <UserPlus size={12} /> Roster Input
+              </label>
+              <div className="flex bg-slate-100 p-1 rounded-lg">
+                <button onClick={() => setNameOrder('firstLast')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${nameOrder === 'firstLast' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>First Last</button>
+                <button onClick={() => setNameOrder('lastFirst')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${nameOrder === 'lastFirst' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>Last, First</button>
+              </div>
+              <form onSubmit={addStudentToRoster} className="space-y-2">
+                <textarea value={newStudentName} onChange={(e) => setNewStudentName(e.target.value)} placeholder={nameOrder === 'firstLast' ? "John Smith\nJane Doe..." : "Smith, John\nDoe, Jane..."} className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm min-h-[80px] bg-slate-50" />
+                <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-2 rounded-lg hover:bg-indigo-700 transition-all text-xs">Process to Bench</button>
+              </form>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex justify-between">
+                <span>Student Bench</span>
+                <span>{benchStudents.length}</span>
+              </label>
+              <div className="flex flex-col gap-2 min-h-[100px] p-3 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                {benchStudents.map(student => (
+                  <div key={student.id} className="flex flex-col bg-white border border-slate-200 rounded-lg p-2 shadow-sm group">
+                    <div className="flex items-center justify-between mb-2">
+                      <button onClick={() => placeStudentFromBench(student.id)} className="text-xs font-bold text-indigo-700 hover:text-indigo-900 truncate flex-1 text-left">
+                        {student.name}
+                        {student.conflicts && student.conflicts.length > 0 && (
+                          <span className="ml-1 text-[8px] text-rose-500">({student.conflicts.length})</span>
+                        )}
+                      </button>
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={() => setManagingConflictsFor(managingConflictsFor === student.id ? null : student.id)} 
+                          className={`${managingConflictsFor === student.id ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400'} transition-colors`}
+                          title="Manage conflicts"
+                        >
+                          <UserX size={14} />
+                        </button>
+                        <button onClick={() => deleteStudent(student.id)} className="text-slate-300 hover:text-rose-500 transition-colors">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {managingConflictsFor === student.id && (
+                      <div className="mb-2 p-2 bg-rose-50 rounded border border-rose-200">
+                        <div className="text-[8px] font-black text-rose-600 uppercase mb-1">Keep away from:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {students.filter(s => s.id !== student.id).map(other => {
+                            const hasConflict = (student.conflicts || []).includes(other.id);
+                            return (
+                              <button
+                                key={other.id}
+                                onClick={() => toggleConflict(student.id, other.id)}
+                                className={`text-[8px] px-1.5 py-0.5 rounded font-bold transition-all ${
+                                  hasConflict 
+                                    ? 'bg-rose-500 text-white' 
+                                    : 'bg-white text-slate-400 border border-slate-200 hover:border-rose-300'
+                                }`}
+                              >
+                                {other.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-1">
+                       <button onClick={() => toggleStudentFlag(student.id, 'behaviour')} className={`flex-1 text-[8px] font-black py-1 rounded transition-all ${student.flags?.behaviour ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-400'}`}>BEH</button>
+                       <button onClick={() => toggleStudentFlag(student.id, 'iep')} className={`flex-1 text-[8px] font-black py-1 rounded transition-all ${student.flags?.iep ? 'bg-purple-500 text-white' : 'bg-slate-100 text-slate-400'}`}>IEP</button>
+                       <button onClick={() => toggleStudentFlag(student.id, 'rmp')} className={`flex-1 text-[8px] font-black py-1 rounded transition-all ${student.flags?.rmp ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-400'}`}>RMP</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-slate-100">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Settings2 size={12} /> Desk Templates
+              </label>
+              <div className="flex flex-col gap-2 min-h-[80px] p-3 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                {deskTemplates.length === 0 ? (
+                  <div className="text-[10px] text-slate-400 text-center py-2">No saved templates</div>
+                ) : (
+                  deskTemplates.map(template => (
+                    <div key={template.id} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg p-2 shadow-sm group">
+                      <button 
+                        onClick={() => placeDeskFromTemplate(template)} 
+                        className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex-1 text-left"
+                      >
+                        {template.name}
+                      </button>
+                      <button 
+                        onClick={() => deleteDeskTemplate(template.id)} 
+                        className="text-slate-300 hover:text-rose-500 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-slate-100">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Settings2 size={12} /> New Desk Presets
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <span className="text-[8px] font-bold text-slate-400">WIDTH</span>
+                  <input type="number" value={defaultWidth} onChange={(e) => setDefaultWidth(parseInt(e.target.value) || 0)} className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-slate-50 outline-none" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[8px] font-bold text-slate-400">HEIGHT</span>
+                  <input type="number" value={defaultHeight} onChange={(e) => setDefaultHeight(parseInt(e.target.value) || 0)} className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-slate-50 outline-none" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => addDesk()} className="flex items-center justify-center gap-1 bg-indigo-50 text-indigo-700 font-bold py-2.5 rounded-xl border-2 border-indigo-100 hover:bg-indigo-100 transition-all text-xs">
+                  <Plus size={16} /> Add Desk
+                </button>
+                <button onClick={saveDeskAsTemplate} className="flex items-center justify-center gap-1 bg-slate-50 text-slate-700 font-bold py-2.5 rounded-xl border-2 border-slate-200 hover:bg-slate-100 transition-all text-xs">
+                  <Save size={16} /> Save Template
+                </button>
+              </div>
+              <div className="space-y-2 pt-2 border-t border-slate-200">
+                <button onClick={clearStudents} className="w-full text-orange-500 font-bold py-2 text-xs hover:underline decoration-2">Clear Students</button>
+                <button onClick={clearAll} className="w-full text-rose-600 font-bold py-2 text-xs hover:underline decoration-2">Clear Entire Room</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Canvas Area */}
+      <div 
+        ref={containerRef}
+        onMouseDown={(e) => handleStart(e, null, null, null, null)}
+        className={`flex-1 relative overflow-hidden bg-slate-200 flex items-center justify-center canvas-container ${isFullScreen ? 'fixed inset-0 z-[100]' : ''}`}
+      >
+        
+        {/* Helper Hint */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-40 text-[10px] font-bold flex items-center gap-2 no-print bg-white/80 px-3 py-1 rounded-full border border-slate-200">
+           <Hand size={12} /> Hold Space to Pan
+        </div>
+
+        {/* Toolbar Controls */}
+        <div className="absolute bottom-6 right-6 z-[80] flex flex-col gap-2 no-print">
+          <div className="flex items-center gap-2 bg-white rounded-xl shadow-2xl border border-slate-200 p-2">
+            <button 
+              onClick={() => setShowFlags(!showFlags)} 
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold text-sm transition-all ${
+                showFlags 
+                  ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' 
+                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+              }`} 
+              title={showFlags ? "Hide Flags & Warnings" : "Show Flags & Warnings"}
+            >
+              {showFlags ? <Eye size={16}/> : <EyeOff size={16}/>}
+              <span>{showFlags ? 'Flags On' : 'Flags Off'}</span>
+            </button>
+          </div>
+          <div className="flex items-center bg-white rounded-xl shadow-2xl border border-slate-200 p-1">
+            <button onClick={() => setIsFullScreen(!isFullScreen)} className={`p-2 rounded-lg transition-colors ${isFullScreen ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-slate-100 text-slate-600'}`} title={isFullScreen ? "Exit Full Screen" : "Full Screen"}>
+              {isFullScreen ? <Minimize2 size={18}/> : <Maximize2 size={18}/>}
+            </button>
+            <div className="w-px h-6 bg-slate-100 mx-1" />
+            <button onClick={() => setZoom(Math.max(0.4, zoom - 0.1))} className="p-2 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors"><ZoomOut size={18}/></button>
+            <div className="px-4 text-xs font-bold text-slate-400 min-w-[60px] text-center">{Math.round(zoom * 100)}%</div>
+            <button onClick={() => setZoom(Math.min(1.5, zoom + 0.1))} className="p-2 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors"><ZoomIn size={18}/></button>
+            <div className="w-px h-6 bg-slate-100 mx-1" />
+            <button onClick={() => { setZoom(0.8); setPanOffset({x:0, y:0}); }} className="p-2 hover:bg-slate-100 text-indigo-600 rounded-lg transition-colors" title="Reset View"><RotateCcw size={16}/></button>
+          </div>
+        </div>
+
+        <div 
+          ref={canvasRef}
+          className="relative bg-white shadow-2xl rounded-sm print-area shrink-0"
+          style={{
+            width: '1400px',
+            height: '1000px',
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+            transformOrigin: 'center center',
+            backgroundImage: `radial-gradient(#cbd5e1 1px, transparent 1px)`,
+            backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
+            transition: draggingItem || resizingItem || rotatingItem || isPanning ? 'none' : 'transform 0.2s ease-out'
+          }}
+        >
+          {/* Legend Key */}
+          {showFlags && (
+            <div className="legend-key absolute top-4 right-4 z-50 flex flex-col gap-2 bg-white p-3 rounded-xl shadow-lg border border-slate-200 text-[9px] font-bold text-slate-500">
+              <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-orange-500" /> BEHAVIOUR</div>
+              <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-purple-500" /> IEP</div>
+              <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-teal-500" /> RMP</div>
+            </div>
+          )}
+          {desks.map(desk => (
+            <div
+              key={desk.id}
+              onMouseDown={(e) => handleStart(e, 'desk', desk.id, desk.x, desk.y)}
+              onContextMenu={(e) => handleContextMenu(e, desk)}
+              className={`absolute select-none border-2 transition-shadow group
+                ${draggingItem?.id === desk.id ? 'z-50 shadow-2xl border-indigo-500 cursor-grabbing' : 'z-10 shadow-md border-slate-300 bg-slate-50 cursor-grab hover:border-indigo-400'}`}
+              style={{
+                left: desk.x,
+                top: desk.y,
+                width: desk.width,
+                height: desk.height,
+                borderRadius: '8px',
+                transform: `rotate(${desk.rotation || 0}deg)`
+              }}
+            >
+              <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-8 h-8 bg-white border-2 border-indigo-100 rounded-full flex items-center justify-center text-indigo-600 cursor-alias opacity-0 group-hover:opacity-100 transition-opacity no-print shadow-sm hover:bg-indigo-50" onMouseDown={(e) => handleRotateStart(e, desk)}>
+                <RotateCw size={14} />
+                <div className="absolute h-4 w-0.5 bg-indigo-100 top-full" />
+              </div>
+              <div className="absolute top-0 left-0 w-full h-2 bg-slate-200/50 no-print rounded-t-[6px]" />
+              <button className="absolute -top-2 -right-2 bg-white text-rose-500 rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:bg-rose-50 border border-slate-100 no-print" onClick={(e) => { e.stopPropagation(); deleteDesk(desk.id); }}>
+                <X size={12} />
+              </button>
+              <div className="absolute top-0 -right-1 w-2 h-full cursor-ew-resize no-print z-40" onMouseDown={(e) => handleResizeStart(e, desk.id, 'width')} />
+              <div className="absolute -bottom-1 left-0 w-full h-2 cursor-ns-resize no-print z-40" onMouseDown={(e) => handleResizeStart(e, desk.id, 'height')} />
+              <div className="absolute -bottom-2 -right-2 w-6 h-6 cursor-nwse-resize no-print z-50 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white rounded-full border border-slate-200 shadow-sm" onMouseDown={(e) => handleResizeStart(e, desk.id, 'both')}>
+                 <Maximize size={10} className="text-slate-400 rotate-90" />
+              </div>
+              <div className="w-full h-full flex items-center justify-center pointer-events-none">
+                <span className="text-[10px] uppercase font-bold text-slate-300 tracking-widest no-print">
+                  {desk.rotation ? `${desk.rotation}°` : `${desk.width}x${desk.height}`}
+                </span>
+              </div>
+            </div>
+          ))}
+
+          {placedStudents.map(student => {
+            const conflicts = getConflictingStudents(student);
+            const hasConflict = conflicts.length > 0;
+            
+            return (
+            <div
+              key={student.id}
+              onMouseDown={(e) => handleStart(e, 'student', student.id, student.x, student.y)}
+              className={`absolute cursor-grab active:cursor-grabbing select-none flex flex-col items-center justify-center group
+                shadow-lg rounded-full px-4 py-2 border-2 text-sm font-bold transition-all
+                ${draggingItem?.id === student.id ? 'z-[60] scale-110 shadow-2xl' : 'z-20'} 
+                ${hasConflict ? 'border-rose-500 bg-rose-100 text-rose-900 animate-pulse' : (showFlags ? getStudentColorClass(student) : 'border-indigo-100 bg-white text-indigo-700 hover:border-indigo-300')}`}
+              style={{ left: student.x, top: student.y }}
+            >
+              <div className="flex items-center gap-1.5">
+                {student.name}
+                {showFlags && (
+                  <div className="flex gap-0.5 no-print">
+                    {hasConflict && (
+                      <div className="relative group/conflict">
+                        <AlertTriangle size={12} className="text-rose-500" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover/conflict:opacity-100 transition-opacity pointer-events-none whitespace-nowrap bg-rose-900 text-white text-[8px] px-2 py-1 rounded shadow-lg z-[100]">
+                          Too close to: {conflicts.map(c => c.name).join(', ')}
+                        </div>
+                      </div>
+                    )}
+                    {student.flags?.behaviour && <ShieldAlert size={10} className="text-orange-500" />}
+                    {student.flags?.iep && <FileText size={10} className="text-purple-500" />}
+                    {student.flags?.rmp && <Activity size={10} className="text-teal-500" />}
+                  </div>
+                )}
+              </div>
+
+              <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex gap-1 no-print opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1 rounded-lg shadow-xl border border-slate-200 z-[70]">
+                <button onClick={(e) => { e.stopPropagation(); toggleStudentFlag(student.id, 'behaviour'); }} className={`px-1.5 py-0.5 rounded text-[8px] font-black ${student.flags?.behaviour ? 'bg-orange-500 text-white' : 'bg-slate-50 text-slate-400'}`}>BEH</button>
+                <button onClick={(e) => { e.stopPropagation(); toggleStudentFlag(student.id, 'iep'); }} className={`px-1.5 py-0.5 rounded text-[8px] font-black ${student.flags?.iep ? 'bg-purple-500 text-white' : 'bg-slate-50 text-slate-400'}`}>IEP</button>
+                <button onClick={(e) => { e.stopPropagation(); toggleStudentFlag(student.id, 'rmp'); }} className={`px-1.5 py-0.5 rounded text-[8px] font-black ${student.flags?.rmp ? 'bg-teal-500 text-white' : 'bg-slate-50 text-slate-400'}`}>RMP</button>
+                <div className="w-px bg-slate-100 mx-1" />
+                <button onClick={(e) => { e.stopPropagation(); returnToBench(student.id); }} title="Return to Bench" className="p-1 hover:text-indigo-500 text-slate-400"><RotateCcw size={12} /></button>
+                <button onClick={(e) => { e.stopPropagation(); deleteStudent(student.id); }} title="Delete" className="p-1 hover:text-rose-500 text-slate-400"><Trash2 size={12} /></button>
+              </div>
+            </div>
+            );
+          })}
+
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-none opacity-15 text-center">
+            <h2 className="text-3xl font-black text-slate-900 italic uppercase tracking-wide">{classroomName}</h2>
+            <p className="text-lg font-bold text-slate-700 uppercase tracking-widest mt-1">Front of Classroom</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div className="fixed bg-white border border-slate-200 shadow-xl rounded-lg py-1 z-[110] min-w-[160px] no-print" style={{ top: contextMenu.y, left: contextMenu.x }} onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => duplicateDesk(contextMenu.desk)} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-left"><Copy size={16} /> Duplicate Desk</button>
+          <button onClick={() => { setDesks(prev => prev.map(d => d.id === contextMenu.desk.id ? { ...d, rotation: (d.rotation + 45) % 360 } : d)); setContextMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-left"><RotateCw size={16} /> Rotate 45°</button>
+          <div className="h-px bg-slate-100 my-1" />
+          <button onClick={() => { deleteDesk(contextMenu.desk.id); setContextMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors text-left"><Trash2 size={16} /> Delete Desk</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+  </script>
+</body>
+</html>
