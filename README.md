@@ -22,7 +22,7 @@ A quick and easy website for creating and managing seating charts.
 ### Adding People
 
 1. Type a name in the "Name" field
-2. Click "Add Seat" or press Enter
+2. Click "Add Person" or press Enter
 3. The person will appear in the "Unassigned People" section
 
 ### Assigning Seats

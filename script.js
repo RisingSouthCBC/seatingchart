@@ -46,9 +46,18 @@ function addPerson() {
         return;
     }
     
+    // Check if person is already unassigned or seated
     if (seatingData.unassigned.includes(name)) {
-        alert('This person is already in the list');
+        alert('This person is already in the unassigned list');
         return;
+    }
+    
+    // Check if person is already seated
+    for (let key in seatingData.seats) {
+        if (seatingData.seats[key] === name) {
+            alert('This person is already assigned to a seat');
+            return;
+        }
     }
     
     seatingData.unassigned.push(name);
@@ -64,7 +73,7 @@ function updateGrid() {
     const newCols = parseInt(colsInput.value);
     
     if (newRows < 1 || newCols < 1 || newRows > 20 || newCols > 20) {
-        alert('Please enter valid grid dimensions (1-20)');
+        alert('Grid dimensions must be between 1 and 20 for both rows and columns');
         return;
     }
     
@@ -145,6 +154,22 @@ function loadChart() {
         reader.onload = (event) => {
             try {
                 const data = JSON.parse(event.target.result);
+                
+                // Validate data structure
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Invalid file format');
+                }
+                if (!data.hasOwnProperty('rows') || !data.hasOwnProperty('cols') || 
+                    !data.hasOwnProperty('seats') || !data.hasOwnProperty('unassigned')) {
+                    throw new Error('Missing required fields');
+                }
+                if (typeof data.rows !== 'number' || typeof data.cols !== 'number') {
+                    throw new Error('Invalid grid dimensions');
+                }
+                if (!Array.isArray(data.unassigned)) {
+                    throw new Error('Invalid unassigned list');
+                }
+                
                 seatingData = data;
                 rowsInput.value = data.rows;
                 colsInput.value = data.cols;
@@ -153,7 +178,7 @@ function loadChart() {
                 saveToLocalStorage();
                 alert('Chart loaded successfully!');
             } catch (error) {
-                alert('Error loading chart file');
+                alert('Error loading chart file: ' + error.message + '. Please ensure the file is a valid seating chart export.');
             }
         };
         reader.readAsText(file);
