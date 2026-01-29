@@ -733,13 +733,13 @@
               key={student.id}
               onMouseDown={(e) => handleStart(e, 'student', student.id, student.x, student.y)}
               className={`absolute cursor-grab active:cursor-grabbing select-none flex flex-col items-center justify-center group
-                shadow-lg rounded-full w-20 h-20 border-2 text-xs font-bold transition-all
+                shadow-lg rounded-full px-4 py-2 border-2 text-sm font-bold transition-all
                 ${draggingItem?.id === student.id ? 'z-[60] scale-110 shadow-2xl' : 'z-20'} 
                 ${hasConflict ? 'border-rose-500 bg-rose-100 text-rose-900 animate-pulse' : (showFlags ? getStudentColorClass(student) : 'border-indigo-100 bg-white text-indigo-700 hover:border-indigo-300')}`}
-              style={{ left: student.x, top: student.y, transform: 'translate(-50%, -50%)' }}
+              style={{ left: student.x, top: student.y }}
             >
-              <div className="flex flex-col items-center justify-center gap-1 text-center">
-                <div className="line-clamp-2">{student.name}</div>
+              <div className="flex items-center gap-1.5">
+                {student.name}
                 {showFlags && (
                   <div className="flex gap-0.5 no-print">
                     {hasConflict && (
