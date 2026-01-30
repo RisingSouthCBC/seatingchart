@@ -69,6 +69,7 @@
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveRoomName, setSaveRoomName] = useState('');
   const [frontPosition, setFrontPosition] = useState('bottom');
+  const [conflictModalStudent, setConflictModalStudent] = useState(null);
   
   const [defaultWidth, setDefaultWidth] = useState(120);
   const [defaultHeight, setDefaultHeight] = useState(80);
@@ -151,7 +152,10 @@
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         const date = new Date().toISOString().split('T')[0];
-        link.download = `seating-chart-${date}.png`;
+        const filename = classroomName && classroomName.trim() 
+          ? `${classroomName.trim()}_${date}.png`
+          : `seating-chart-${date}.png`;
+        link.download = filename;
         link.href = url;
         link.click();
         URL.revokeObjectURL(url);
@@ -289,11 +293,39 @@
   const placeStudentFromBench = (id) => {
     const canvasWidth = 1400;
     const canvasHeight = 1000;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const centerX = (containerRect.width / 2 - panOffset.x) / zoom;
-    const centerY = (containerRect.height / 2 - panOffset.y) / zoom;
-    const snappedX = Math.round(centerX / GRID_SIZE) * GRID_SIZE;
-    const snappedY = Math.round(centerY / GRID_SIZE) * GRID_SIZE;
+    const studentWidth = 100;
+    const studentHeight = 40;
+    const padding = 100;
+    const minSpacing = 60; // minimum spacing between students
+    
+    // Find a good empty spot for this student
+    let x = padding;
+    let y = padding;
+    let found = false;
+    
+    // Try to find an empty spot by scanning the canvas
+    for (let ty = padding; ty < canvasHeight - studentHeight; ty += minSpacing) {
+      for (let tx = padding; tx < canvasWidth - studentWidth; tx += minSpacing) {
+        // Check if this spot overlaps with any existing students
+        const overlaps = students.some(s => 
+          s.isPlaced && 
+          !(tx + studentWidth < s.x || tx > s.x + 100 || 
+            ty + studentHeight < s.y || ty > s.y + 40)
+        );
+        
+        if (!overlaps) {
+          x = tx;
+          y = ty;
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    
+    // Snap to grid
+    const snappedX = Math.round(x / GRID_SIZE) * GRID_SIZE;
+    const snappedY = Math.round(y / GRID_SIZE) * GRID_SIZE;
 
     setStudents(prev => prev.map(s => s.id === id ? { 
       ...s, 
@@ -697,7 +729,15 @@
               )}
               <div className="flex flex-col gap-2.5 min-h-[110px] p-3 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
                 {benchStudents.map(student => (
-                  <div key={student.id} className="flex flex-col bg-white border border-slate-200 rounded-lg p-2 shadow-sm group">
+                  <div 
+                    key={student.id} 
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = 'move';
+                      e.dataTransfer.setData('studentId', student.id);
+                    }}
+                    className="flex flex-col bg-white border border-slate-200 rounded-lg p-2 shadow-sm group cursor-grab active:cursor-grabbing"
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <button onClick={() => placeStudentFromBench(student.id)} className="text-xs font-bold text-indigo-700 hover:text-indigo-900 truncate flex-1 text-left">
                         {student.name}
@@ -707,8 +747,8 @@
                       </button>
                       <div className="flex gap-1">
                         <button 
-                          onClick={() => setManagingConflictsFor(managingConflictsFor === student.id ? null : student.id)} 
-                          className={`${managingConflictsFor === student.id ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400'} transition-colors`}
+                          onClick={() => setConflictModalStudent(student.id)} 
+                          className="text-slate-300 hover:text-rose-400 transition-colors"
                           title="Manage conflicts"
                         >
                           <UserX size={14} />
@@ -718,30 +758,6 @@
                         </button>
                       </div>
                     </div>
-                    
-                    {managingConflictsFor === student.id && (
-                      <div className="mb-2 p-2 bg-rose-50 rounded border border-rose-200">
-                        <div className="text-[8px] font-black text-rose-600 uppercase mb-1">Keep away from:</div>
-                        <div className="flex flex-wrap gap-1">
-                          {students.filter(s => s.id !== student.id).map(other => {
-                            const hasConflict = (student.conflicts || []).includes(other.id);
-                            return (
-                              <button
-                                key={other.id}
-                                onClick={() => toggleConflict(student.id, other.id)}
-                                className={`text-[8px] px-1.5 py-0.5 rounded font-bold transition-all ${
-                                  hasConflict 
-                                    ? 'bg-rose-500 text-white' 
-                                    : 'bg-white text-slate-400 border border-slate-200 hover:border-rose-300'
-                                }`}
-                              >
-                                {other.name}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
                     
                     <div className="flex gap-1">
                        <button onClick={() => toggleStudentFlag(student.id, 'behaviour')} className={`flex-1 text-[8px] font-black py-1 rounded transition-all ${student.flags?.behaviour ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-400'}`}>BEH</button>
@@ -828,6 +844,45 @@
               Clear Entire Room
             </button>
           </div>
+
+          {/* Conflict Management Modal */}
+          {conflictModalStudent && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-y-auto p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-[13px] font-black text-slate-900">Manage Conflicts</h3>
+                  <button onClick={() => setConflictModalStudent(null)} className="text-slate-400 hover:text-slate-600">
+                    <X size={20} />
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500 mb-4">
+                  Select students who should sit apart from <span className="font-bold">{students.find(s => s.id === conflictModalStudent)?.name}</span>:
+                </p>
+                <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                  {students.filter(s => s.id !== conflictModalStudent).map(other => {
+                    const student = students.find(s => s.id === conflictModalStudent);
+                    const hasConflict = (student?.conflicts || []).includes(other.id);
+                    return (
+                      <button
+                        key={other.id}
+                        onClick={() => toggleConflict(conflictModalStudent, other.id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg font-bold text-sm transition-all ${
+                          hasConflict 
+                            ? 'bg-rose-500 text-white' 
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {other.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button onClick={() => setConflictModalStudent(null)} className="w-full mt-4 bg-slate-200 text-slate-700 font-bold py-2 rounded-lg hover:bg-slate-300 transition-all text-xs">
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -881,6 +936,32 @@
         <div 
           ref={canvasRef}
           className="relative bg-white shadow-2xl rounded-sm print-area shrink-0"
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const studentId = e.dataTransfer.getData('studentId');
+            if (!studentId) return;
+            
+            const rect = canvasRef.current.getBoundingClientRect();
+            const dropX = (e.clientX - rect.left) / zoom - panOffset.x / zoom;
+            const dropY = (e.clientY - rect.top) / zoom - panOffset.y / zoom;
+            const snappedX = Math.round(dropX / GRID_SIZE) * GRID_SIZE;
+            const snappedY = Math.round(dropY / GRID_SIZE) * GRID_SIZE;
+            
+            setStudents(prev => prev.map(s => 
+              s.id === studentId 
+                ? { 
+                    ...s, 
+                    isPlaced: true, 
+                    x: Math.min(Math.max(0, snappedX), 1300), 
+                    y: Math.min(Math.max(0, snappedY), 960) 
+                  }
+                : s
+            ));
+          }}
           style={{
             width: '1400px',
             height: '1000px',
