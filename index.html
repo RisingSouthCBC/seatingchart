@@ -291,6 +291,7 @@
     if (student.flags.behaviour) return 'border-orange-200 bg-orange-50 text-orange-800 hover:border-orange-400 shadow-orange-100';
     if (student.flags.iep) return 'border-purple-200 bg-purple-50 text-purple-800 hover:border-purple-400 shadow-purple-100';
     if (student.flags.rmp) return 'border-teal-200 bg-teal-50 text-teal-800 hover:border-teal-400 shadow-teal-100';
+    if (student.flags.medical) return 'border-red-200 bg-red-50 text-red-800 hover:border-red-400 shadow-red-100';
     return 'border-indigo-100 bg-white text-indigo-700 hover:border-indigo-300';
   };
 
@@ -429,7 +430,7 @@
       x: null, 
       y: null,
       isPlaced: false,
-      flags: { behaviour: false, iep: false, rmp: false },
+      flags: { behaviour: false, iep: false, rmp: false, medical: false },
       conflicts: []
     }));
     setStudents([...students, ...newStudents]);
@@ -808,6 +809,7 @@
                        <button onClick={() => toggleStudentFlag(student.id, 'behaviour')} className={`flex-1 text-[8px] font-black py-1 rounded transition-all ${student.flags?.behaviour ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-400'}`}>BEH</button>
                        <button onClick={() => toggleStudentFlag(student.id, 'iep')} className={`flex-1 text-[8px] font-black py-1 rounded transition-all ${student.flags?.iep ? 'bg-purple-500 text-white' : 'bg-slate-100 text-slate-400'}`}>IEP</button>
                        <button onClick={() => toggleStudentFlag(student.id, 'rmp')} className={`flex-1 text-[8px] font-black py-1 rounded transition-all ${student.flags?.rmp ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-400'}`}>RMP</button>
+                       <button onClick={() => toggleStudentFlag(student.id, 'medical')} className={`flex-1 text-[8px] font-black py-1 rounded transition-all ${student.flags?.medical ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-400'}`}>MED</button>
                     </div>
                   </div>
                 ))}
@@ -1023,6 +1025,7 @@
               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-orange-500" /> BEHAVIOUR</div>
               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-purple-500" /> IEP</div>
               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-teal-500" /> RMP</div>
+              <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500" /> MEDICAL</div>
             </div>
           )}
           {desks.map(desk => (
@@ -1091,6 +1094,7 @@
                     {student.flags?.behaviour && <ShieldAlert size={10} className="text-orange-500" />}
                     {student.flags?.iep && <FileText size={10} className="text-purple-500" />}
                     {student.flags?.rmp && <Activity size={10} className="text-teal-500" />}
+                    {student.flags?.medical && <AlertTriangle size={10} className="text-red-500" />}
                   </div>
                 )}
               </div>
@@ -1099,6 +1103,7 @@
                 <button onClick={(e) => { e.stopPropagation(); toggleStudentFlag(student.id, 'behaviour'); }} className={`px-1.5 py-0.5 rounded text-[8px] font-black ${student.flags?.behaviour ? 'bg-orange-500 text-white' : 'bg-slate-50 text-slate-400'}`}>BEH</button>
                 <button onClick={(e) => { e.stopPropagation(); toggleStudentFlag(student.id, 'iep'); }} className={`px-1.5 py-0.5 rounded text-[8px] font-black ${student.flags?.iep ? 'bg-purple-500 text-white' : 'bg-slate-50 text-slate-400'}`}>IEP</button>
                 <button onClick={(e) => { e.stopPropagation(); toggleStudentFlag(student.id, 'rmp'); }} className={`px-1.5 py-0.5 rounded text-[8px] font-black ${student.flags?.rmp ? 'bg-teal-500 text-white' : 'bg-slate-50 text-slate-400'}`}>RMP</button>
+                <button onClick={(e) => { e.stopPropagation(); toggleStudentFlag(student.id, 'medical'); }} className={`px-1.5 py-0.5 rounded text-[8px] font-black ${student.flags?.medical ? 'bg-red-500 text-white' : 'bg-slate-50 text-slate-400'}`}>MED</button>
                 <div className="w-px bg-slate-100 mx-1" />
                 <button onClick={(e) => { e.stopPropagation(); startEditingStudent(student); }} title="Edit name" className="p-1 hover:text-indigo-500 text-slate-400"><Edit size={12} /></button>
                 <button onClick={(e) => { e.stopPropagation(); returnToBench(student.id); }} title="Return to Bench" className="p-1 hover:text-indigo-500 text-slate-400"><RotateCcw size={12} /></button>
