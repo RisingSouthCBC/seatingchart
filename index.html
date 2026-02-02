@@ -77,6 +77,8 @@
   const [editingStudentId, setEditingStudentId] = useState(null);
   const [editingStudentName, setEditingStudentName] = useState('');
   const [stripLastName, setStripLastName] = useState(true);
+  const [editingRoomId, setEditingRoomId] = useState(null);
+  const [editingRoomName, setEditingRoomName] = useState('');
 
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -224,6 +226,28 @@
     const updatedRooms = savedRooms.filter(r => r.id !== roomId);
     setSavedRooms(updatedRooms);
     localStorage.setItem('saved_rooms', JSON.stringify(updatedRooms));
+  };
+
+  const startEditingRoom = (room) => {
+    setEditingRoomId(room.id);
+    setEditingRoomName(room.name);
+  };
+
+  const saveEditedRoomName = () => {
+    if (!editingRoomName.trim()) {
+      setEditingRoomId(null);
+      return;
+    }
+
+    const updatedRooms = savedRooms.map(r =>
+      r.id === editingRoomId
+        ? { ...r, name: editingRoomName }
+        : r
+    );
+    setSavedRooms(updatedRooms);
+    localStorage.setItem('saved_rooms', JSON.stringify(updatedRooms));
+    setEditingRoomId(null);
+    setEditingRoomName('');
   };
 
   const clearAll = () => {
@@ -721,12 +745,21 @@
                         >
                           {room.name}
                         </button>
-                        <button 
-                          onClick={() => deleteRoom(room.id)} 
-                          className="text-slate-300 hover:text-rose-500 transition-colors"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <div className="flex gap-1">
+                          <button 
+                            onClick={() => startEditingRoom(room)} 
+                            className="text-slate-300 hover:text-indigo-500 transition-colors"
+                            title="Edit name"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button 
+                            onClick={() => deleteRoom(room.id)} 
+                            className="text-slate-300 hover:text-rose-500 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
                       <div className="text-[8px] text-slate-400 space-y-0.5">
                         <div>Desks: {room.desks?.length || 0} | Students: {room.students?.length || 0}</div>
@@ -1148,6 +1181,41 @@
           <button onClick={() => { setDesks(prev => prev.map(d => d.id === contextMenu.desk.id ? { ...d, rotation: (d.rotation + 45) % 360 } : d)); setContextMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors text-left"><RotateCw size={16} /> Rotate 45°</button>
           <div className="h-px bg-slate-100 my-1" />
           <button onClick={() => { deleteDesk(contextMenu.desk.id); setContextMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors text-left"><Trash2 size={16} /> Delete Desk</button>
+        </div>
+      )}
+
+      {/* Edit Room Name Modal */}
+      {editingRoomId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">Edit Saved Room Name</h3>
+            <input
+              type="text"
+              value={editingRoomName}
+              onChange={(e) => setEditingRoomName(e.target.value)}
+              placeholder="Enter room name"
+              className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm mb-4 bg-slate-50"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') saveEditedRoomName();
+                if (e.key === 'Escape') setEditingRoomId(null);
+              }}
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditingRoomId(null)}
+                className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveEditedRoomName}
+                className="flex-1 px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-all"
+              >
+                Save
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
