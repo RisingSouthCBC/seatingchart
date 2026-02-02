@@ -76,6 +76,7 @@
   const [defaultHeight, setDefaultHeight] = useState(80);
   const [editingStudentId, setEditingStudentId] = useState(null);
   const [editingStudentName, setEditingStudentName] = useState('');
+  const [stripLastName, setStripLastName] = useState(true);
 
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -384,10 +385,16 @@
     setContextMenu(null);
   };
 
-  const formatName = (rawName) => {
+  const formatName = (rawName, shouldStrip = true) => {
     const parts = rawName.trim().split(/[\s,]+/).filter(Boolean);
     if (parts.length === 0) return "";
     
+    if (!shouldStrip) {
+      // Return full name
+      return parts.join(' ');
+    }
+    
+    // Return abbreviated name (original behavior)
     let first = "";
     let lastInitial = "";
     
@@ -409,7 +416,7 @@
     const lines = newStudentName.split('\n').filter(n => n.trim() !== '');
     const newStudents = lines.map((line, index) => ({
       id: `student-${Date.now()}-${index}-${Math.random()}`,
-      name: formatName(line),
+      name: formatName(line, stripLastName),
       x: null, 
       y: null,
       isPlaced: false,
@@ -732,6 +739,10 @@
               <div className="flex bg-slate-100 p-1 rounded-lg">
                 <button onClick={() => setNameOrder('firstLast')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${nameOrder === 'firstLast' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>First Last</button>
                 <button onClick={() => setNameOrder('lastFirst')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${nameOrder === 'lastFirst' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>Last, First</button>
+              </div>
+              <div className="flex bg-slate-100 p-1 rounded-lg">
+                <button onClick={() => setStripLastName(true)} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${stripLastName ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>Abbrev. Names</button>
+                <button onClick={() => setStripLastName(false)} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${!stripLastName ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>Full Names</button>
               </div>
               <form onSubmit={addStudentToRoster} className="space-y-2">
                 <textarea value={newStudentName} onChange={(e) => setNewStudentName(e.target.value)} placeholder={nameOrder === 'firstLast' ? "John Smith\nJane Doe..." : "Smith, John\nDoe, Jane..."} className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm min-h-[80px] bg-slate-50" />
