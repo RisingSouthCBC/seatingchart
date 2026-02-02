@@ -386,28 +386,37 @@
   };
 
   const formatName = (rawName, shouldStrip = true) => {
-    const parts = rawName.trim().split(/[\s,]+/).filter(Boolean);
-    if (parts.length === 0) return "";
+    const trimmedName = rawName.trim();
+    if (trimmedName.length === 0) return "";
+    
+    let firstName = "";
+    let lastNames = "";
+    
+    // Split by comma to handle "Last, First" format
+    if (trimmedName.includes(',')) {
+      const [lastPart, firstPart] = trimmedName.split(',', 2).map(s => s.trim());
+      lastNames = lastPart;
+      firstName = firstPart.split(/[\s,]+/)[0] || ""; // Get first word of first names
+    } else {
+      // No comma - use space splitting
+      const parts = trimmedName.split(/[\s,]+/).filter(Boolean);
+      if (nameOrder === 'lastFirst' && parts.length >= 2) {
+        firstName = parts[1];
+        lastNames = parts[0];
+      } else {
+        firstName = parts[0];
+        lastNames = parts.length > 1 ? parts[parts.length - 1] : "";
+      }
+    }
     
     if (!shouldStrip) {
       // Return full name
-      return parts.join(' ');
+      return trimmedName;
     }
     
-    // Return abbreviated name (original behavior)
-    let first = "";
-    let lastInitial = "";
-    
-    if (nameOrder === 'lastFirst' && parts.length >= 2) {
-      first = parts[1];
-      lastInitial = parts[0].charAt(0).toUpperCase();
-    } else if (parts.length >= 2) {
-      first = parts[0];
-      lastInitial = parts[parts.length - 1].charAt(0).toUpperCase();
-    } else {
-      first = parts[0];
-    }
-    return lastInitial ? `${first} ${lastInitial}.` : first;
+    // Return abbreviated name (first name + last initial)
+    const lastInitial = lastNames ? lastNames.charAt(0).toUpperCase() : "";
+    return lastInitial ? `${firstName} ${lastInitial}.` : firstName;
   };
 
   const addStudentToRoster = (e) => {
